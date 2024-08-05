@@ -19,9 +19,10 @@ import com.Avinya.App.Model.User;
 import com.Avinya.App.Model.Vendor;
 import com.Avinya.App.Repository.UserRepository;
 import com.Avinya.App.Repository.VendorRepository;
+import java.util.regex.Pattern;
 
 @RestController
-@RequestMapping("/api/vendor")
+@RequestMapping("/api/distributor")
 public class VendorController {
 	
 	 @Autowired
@@ -30,21 +31,41 @@ public class VendorController {
 	 	@Autowired
 		UserRepository userRepository;
 
-	    @PostMapping("/register")
-	    public ResponseEntity<?> createVendor(@RequestBody Vendor vendor) {
-	        try {
-	        	User user = new User();
-	        	user.setEmail(vendor.getEmail());
-	        	user.setMobNo(vendor.getMobileNumber());
-	        	user.setPassword(vendor.getPassword());
-	        	user.setUserType("vendor");
-	        	userRepository.save(user);
-	            Vendor createdVendor = vendorRepository.save(vendor);
-	            return new ResponseEntity<>(createdVendor, HttpStatus.CREATED);
-	        } catch (Exception e) {
-	            return new ResponseEntity<>("Error creating vendor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-	        }
-	    }
+	 	@PostMapping("/register")
+	 	public ResponseEntity<?> createVendor(@RequestBody Vendor vendor) {
+	 	    try {
+	 	        validatePassword(vendor.getPassword());
+
+	 	        User user = new User();
+	 	        user.setEmail(vendor.getEmail());
+	 	        user.setMobNo(vendor.getMobileNumber());
+	 	        user.setPassword(vendor.getPassword());
+	 	        user.setUserType("vendor");
+	 	        userRepository.save(user);
+
+	 	        Vendor createdVendor = vendorRepository.save(vendor);
+	 	        return new ResponseEntity<>("Distributor created successfully!", HttpStatus.CREATED);
+	 	    } catch (InvalidPasswordException e) {
+	 	        return new ResponseEntity<>("Password validation failed: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+	 	    } catch (Exception e) {
+	 	        return new ResponseEntity<>("Error creating distributor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	 	    }
+	 	}
+
+	 	private void validatePassword(String password) throws InvalidPasswordException {
+	 	    String passwordPattern = "^(?=.*[A-Z])(?=.*[!@#$%^&*()\\-_=+{};:,<.>])(?=.*\\d).{8,}$";
+	 	    if (!Pattern.matches(passwordPattern, password)) {
+	 	        throw new InvalidPasswordException("Password must contain at least one uppercase letter, one special character, one number, and be at least 8 characters long.");
+	 	    }
+	 	}
+
+	 	// Custom exception class for invalid password
+	 	class InvalidPasswordException extends Exception {
+	 	    public InvalidPasswordException(String message) {
+	 	        super(message);
+	 	    }
+	 	}
+
 
 	    @GetMapping("/get-all")
 	    public ResponseEntity<?> getAllVendors() {
@@ -52,7 +73,7 @@ public class VendorController {
 	            List<Vendor> vendors = vendorRepository.findAll();
 	            return new ResponseEntity<>(vendors, HttpStatus.OK);
 	        } catch (Exception e) {
-	            return new ResponseEntity<>("Error fetching vendors: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	            return new ResponseEntity<>("Error fetching distributors: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 	        }
 	    }
 
@@ -63,10 +84,10 @@ public class VendorController {
 	            if (optionalVendor.isPresent()) {
 	                return new ResponseEntity<>(optionalVendor.get(), HttpStatus.OK);
 	            } else {
-	                return new ResponseEntity<>("Vendor not found", HttpStatus.NOT_FOUND);
+	                return new ResponseEntity<>("Distributor not found", HttpStatus.NOT_FOUND);
 	            }
 	        } catch (Exception e) {
-	            return new ResponseEntity<>("Error fetching vendor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	            return new ResponseEntity<>("Error fetching distributor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 	        }
 	    }
 
@@ -78,10 +99,10 @@ public class VendorController {
 	                Vendor updatedVendor = vendorRepository.save(vendor);
 	                return new ResponseEntity<>(updatedVendor, HttpStatus.OK);
 	            } else {
-	                return new ResponseEntity<>("Vendor not found", HttpStatus.NOT_FOUND);
+	                return new ResponseEntity<>("Distributor not found", HttpStatus.NOT_FOUND);
 	            }
 	        } catch (Exception e) {
-	            return new ResponseEntity<>("Error updating vendor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	            return new ResponseEntity<>("Error updating distributor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 	        }
 	    }
 
@@ -90,12 +111,12 @@ public class VendorController {
 	        try {
 	            if (vendorRepository.existsById(id)) {
 	                vendorRepository.deleteById(id);
-	                return new ResponseEntity<>("Vendor deleted successfully", HttpStatus.OK);
+	                return new ResponseEntity<>("Distributor deleted successfully", HttpStatus.OK);
 	            } else {
-	                return new ResponseEntity<>("Vendor not found", HttpStatus.NOT_FOUND);
+	                return new ResponseEntity<>("Distributor not found", HttpStatus.NOT_FOUND);
 	            }
 	        } catch (Exception e) {
-	            return new ResponseEntity<>("Error deleting vendor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	            return new ResponseEntity<>("Error deleting distributor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 	        }
 	    }
 
