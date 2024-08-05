@@ -1,7 +1,9 @@
 package com.Avinya.App.Model;
 
 import javax.validation.constraints.Email;
-import javax.validation.constraints.Max;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,12 +13,18 @@ public class User1 {
 	
 	@Id
 	private String id;
+	@NotNull(message = "Name cannot be null")
+	@Size(min = 1, message = "Name cannot be empty")
 	private String name;
-	@Email
+
+	@Email(message = "Invalid email format")
 	private String email;
-	@Max(value = 10, message = "The mobile number must be less than or equal to {value}")
+
+	@NotNull(message = "Mobile number cannot be null")
+	@Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be 10 digits")
 	private String mobNo;
-	private String password;
+    @NotNull
+    private String password;
 
 	public String getId() {
 		return id;
