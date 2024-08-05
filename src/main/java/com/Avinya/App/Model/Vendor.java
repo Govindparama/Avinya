@@ -1,6 +1,10 @@
 package com.Avinya.App.Model;
 
 import javax.persistence.Id;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -9,10 +13,21 @@ public class Vendor {
 	
 	@Id
 	private String id;
+	@NotNull(message = "GST Number cannot be null")
 	private String gstNumber;
+
+	@NotNull(message = "Location cannot be null")
 	private String location;
+
+	@NotNull(message = "Name cannot be null")
+	@Size(min = 1, message = "Name cannot be empty")
 	private String name;
+
+	@Email(message = "Invalid email format")
 	private String email;
+
+	@NotNull(message = "Mobile number cannot be null")
+	@Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be 10 digits")
 	private String mobileNumber;
 	private String password;
 	
