@@ -2,10 +2,14 @@ package com.Avinya.App.Controller;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,9 +23,10 @@ import com.Avinya.App.Model.User;
 import com.Avinya.App.Model.User1;
 import com.Avinya.App.Repository.User1Repository;
 import com.Avinya.App.Repository.UserRepository;
+import com.Avinya.App.Security.ErrorUtils;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/customer")
 public class UserController {
 
 	
@@ -34,25 +39,42 @@ public class UserController {
 //    @Autowired
 //    private JwtConfig jwtConfig;
 	
-	@GetMapping
-	public ResponseEntity<?> welcome()
-	{
-		return ResponseEntity.ok().body("Welcome...!");
-	}
-	
-	@PostMapping("/register")
-    public ResponseEntity<?> createUser(@RequestBody User1 user1) {
+    @PostMapping("/register")
+    public ResponseEntity<?> createUser(@Valid @RequestBody User1 user1, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            List<String> errorMessages = ErrorUtils.getErrorMessages(bindingResult);
+            return ResponseEntity.badRequest().body(errorMessages);
+        }
         try {
-        	User user = new User();
-        	user.setEmail(user1.getEmail());
-        	user.setMobNo(user1.getMobNo());
-        	user.setPassword(user1.getPassword());
-        	user.setUserType("user");
-        	userRepository.save(user);
+            validatePassword(user1.getPassword());
+
+            User user = new User();
+            user.setEmail(user1.getEmail());
+            user.setMobNo(user1.getMobNo());
+            user.setPassword(user1.getPassword());
+            user.setUserType("user");
+            userRepository.save(user);
+
             User1 savedUser = user1Repository.save(user1);
-            return ResponseEntity.ok(savedUser);
+            return ResponseEntity.ok().body("Welcome!");
+        } catch (InvalidPasswordException e) {
+            return ResponseEntity.badRequest().body("Password validation failed: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating user");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating customer");
+        }
+    }
+
+    private void validatePassword(String password) throws InvalidPasswordException {
+        String passwordPattern = "^(?=.*[A-Z])(?=.*[!@#$%^&*()\\-_=+{};:,<.>])(?=.*\\d).{8,}$";
+        if (!Pattern.matches(passwordPattern, password)) {
+            throw new InvalidPasswordException("Password must contain at least one uppercase letter, one special character, one number, and be at least 8 characters long.");
+        }
+    }
+
+    // Custom exception class for invalid password
+    class InvalidPasswordException extends Exception {
+        public InvalidPasswordException(String message) {
+            super(message);
         }
     }
 
@@ -62,7 +84,7 @@ public class UserController {
             List<User1> users = user1Repository.findAll();
             return ResponseEntity.ok(users);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving users");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving customer");
         }
     }
     
@@ -73,10 +95,10 @@ public class UserController {
             if (optionalUser1.isPresent()) {
                 return new ResponseEntity<>(optionalUser1.get(), HttpStatus.OK);
             } else {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("Customer not found", HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            return new ResponseEntity<>("Error fetching User: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Error fetching customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -88,10 +110,10 @@ public class UserController {
                 User1 updatedUser1 = user1Repository.save(user1);
                 return new ResponseEntity<>(updatedUser1, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("Customer not found", HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            return new ResponseEntity<>("Error updating User: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Error updating customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -100,77 +122,12 @@ public class UserController {
         try {
             if (user1Repository.existsById(id)) {
                 user1Repository.deleteById(id);
-                return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
+                return new ResponseEntity<>("Customer deleted successfully", HttpStatus.OK);
             } else {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("Customer not found", HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            return new ResponseEntity<>("Error deleting User: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Error deleting customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
-//    @PostMapping("/login")
-//    public ResponseEntity<LoginResponse> login(@RequestBody LoginReq loginReq) {
-//        // Validate loginReq (e.g., check if email or mobile number is present)
-//
-//        // Authenticate the user
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(loginReq.getEmail(), loginReq.getPassword())
-//        );
-//
-//        // Set authentication in the SecurityContext
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
-//
-//        // Generate JWT token
-//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-//        String jwtToken = generateJwtToken(userDetails);
-//
-//        // Save JWT token in userRepository (you might want to enhance this part based on your data model)
-//        Optional<User> opuser = userRepository.findByEmail(loginReq.getEmail());
-//        User user = opuser.get();
-//        user.setJwt(jwtToken);
-//        userRepository.save(user);
-//
-//        // Return response with user type and JWT token
-//        return ResponseEntity.ok(new LoginResponse(user.getUserType(), jwtToken));
-//    }
-    
-   
-//    @PostMapping("/token/reset")
-//    public ResponseEntity<LoginResponse> resetToken() {
-//        // Get the authenticated user's username from SecurityContext
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//
-//        // Invalidate old JWT token
-//        Optional<User> opUser = userRepository.findByEmail(username);
-//        if (opUser.isPresent()) {
-//            User user = opUser.get();
-//            user.setJwt(null);  // Invalidate the old JWT token
-//            userRepository.save(user);
-//        }
-//
-//        // Generate a new JWT token
-//        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-//        String newJwtToken = generateJwtToken(userDetails);
-//
-//        // Save the new JWT token in userRepository
-//        Optional<User> opNewUser = userRepository.findByEmail(username);
-//        if (opNewUser.isPresent()) {
-//            User newUser = opNewUser.get();
-//            newUser.setJwt(newJwtToken);
-//            userRepository.save(newUser);
-//        }
-//
-//        return ResponseEntity.ok(new LoginResponse(username, newJwtToken));
-//    }
-//
-//    private String generateJwtToken(UserDetails userDetails) {
-//        return Jwts.builder()
-//                .setSubject(userDetails.getUsername())
-//                .setIssuedAt(new Date())
-//                .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-//                .signWith(SignatureAlgorithm.HS512, jwtConfig.getSecret())
-//                .compact();
-//    }
 }
-
